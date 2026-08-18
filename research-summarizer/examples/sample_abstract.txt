@@ -1,0 +1,15 @@
+Large language models (LLMs) have demonstrated remarkable capabilities across a wide
+range of natural language processing tasks, yet their tendency to produce factually
+incorrect outputs -- commonly referred to as "hallucination" -- remains a significant
+barrier to their deployment in high-stakes domains. In this work, we present a
+systematic study of hallucination in LLMs, proposing a taxonomy that distinguishes
+between intrinsic hallucinations (contradicting the source input) and extrinsic
+hallucinations (unverifiable against the source). We introduce a benchmark of 5,000
+human-annotated examples spanning summarization, question answering, and open-ended
+generation, and evaluate eleven state-of-the-art models against it. Our results show
+that model scale alone does not reduce hallucination rates, but that retrieval
+augmentation and fine-tuning on human feedback each independently reduce extrinsic
+hallucinations by over 30%. We further find that current automatic metrics correlate
+poorly with human judgments of factuality, motivating the need for better evaluation
+protocols. We release our benchmark and annotation guidelines to support future
+research on mitigating hallucination in generative language models.
