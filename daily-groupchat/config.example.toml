@@ -1,0 +1,16 @@
+# Copy this file to config.toml and fill it in. config.toml stays out of git.
+
+# The group chat to report on. Find it with: python -m groupchat chats
+chat_guid = "iMessage;+;chat000000000000000000"
+
+# Phone numbers / emails -> names to print. Copy names.example.json to names.json.
+names = "names.json"
+
+# Where issues are saved. Issues contain chat text, so this folder stays out of git.
+issues_dir = "issues"
+
+# How many days each issue covers.
+days = 7
+
+# Where the Messages database lives (default shown).
+# db = "~/Library/Messages/chat.db"
