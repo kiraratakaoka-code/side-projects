@@ -14,3 +14,6 @@ days = 7
 
 # Where the Messages database lives (default shown).
 # db = "~/Library/Messages/chat.db"
+
+# Where the website is built. Upload this folder to publish it. Kept out of git.
+site_dir = "site"

@@ -5,7 +5,8 @@
     python -m groupchat rows --chat GUID      raw recent rows of any chat, for debugging
     python -m groupchat issue                 write this week's issue (calls Claude)
     python -m groupchat issue --sample        render a canned issue from real stats (no API call)
-    python -m groupchat mark-posted FILE      record an issue as posted to the group
+    python -m groupchat mark-posted FILE      record an issue as posted (and rebuild the website)
+    python -m groupchat site                  rebuild the website folder from posted issues
 """
 
 import argparse
@@ -14,7 +15,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import extract, render, stats, verify, write
+from . import extract, render, site, stats, verify, write
 
 try:
     import tomllib
@@ -26,11 +27,12 @@ DEFAULT_CONFIG = ROOT / "config.toml"
 
 
 def load_config(path: Path) -> dict:
-    config = {"db": str(extract.DEFAULT_DB), "names": "names.json", "issues_dir": "issues", "days": 7}
+    config = {"db": str(extract.DEFAULT_DB), "names": "names.json", "issues_dir": "issues",
+              "site_dir": "site", "days": 7}
     if path.exists():
         with open(path, "rb") as f:
             config.update(tomllib.load(f))
-    for key in ("names", "issues_dir"):
+    for key in ("names", "issues_dir", "site_dir"):
         if not Path(config[key]).is_absolute():
             config[key] = str(path.parent / config[key])
     return config
@@ -149,6 +151,17 @@ def cmd_mark_posted(config, args):
     issues_dir.mkdir(parents=True, exist_ok=True)
     (issues_dir / "posted.json").write_text(json.dumps(log, indent=2), encoding="utf-8")
     print(f"Recorded issue #{issue.get('issue_number')} as posted. The next issue will be #{len(log) + 1}.")
+    cmd_site(config, args)
+
+
+def cmd_site(config, args):
+    out_dir = Path(config["site_dir"])
+    try:
+        files = site.build(posted_log(Path(config["issues_dir"])), out_dir)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    pages = sum(1 for f in files if f.suffix == ".html")
+    print(f"Website rebuilt: {pages} pages in {out_dir}. Upload that folder to publish it.")
 
 
 def main(argv=None) -> None:
@@ -181,6 +194,9 @@ def main(argv=None) -> None:
     p = sub.add_parser("mark-posted", help="Record an issue as posted to the group")
     p.add_argument("file", help="The issue's .json (or .png) file")
     p.set_defaults(func=cmd_mark_posted)
+
+    p = sub.add_parser("site", help="Rebuild the website folder from posted issues")
+    p.set_defaults(func=cmd_site)
 
     args = parser.parse_args(argv)
     config = load_config(args.config)

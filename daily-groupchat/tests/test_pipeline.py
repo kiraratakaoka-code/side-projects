@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from groupchat import extract, render, stats, verify, write
+from groupchat import extract, render, site, stats, verify, write
 from groupchat.__main__ import main
 from tests import fake_chat_db
 from tests.fake_chat_db import GROUP_GUID, NAMES, NOW
@@ -118,7 +118,7 @@ def test_verify_rejects_unplaceheld_quotes(week):
 def test_rendered_prose_is_escaped(week):
     s = stats.compute(week, issue_number=1)
     issue = verify.verify(make_issue(lead_headline="<script>alert(1)</script> {{ 7*7 }}"), week, s)
-    html = render.render_html(issue, week, s)
+    html = render.render_html(render.page_data(issue, week, s))
     assert "<script>alert" not in html
     assert "{{ 7*7 }}" in html  # printed literally, never run as a template
     assert "<q>The tupperware is BASICALLY returned</q>" in html
@@ -156,7 +156,34 @@ def test_cli_sample_issue_and_posting(tmp_path, db, capsys, monkeypatch):
     assert json.loads(json_path.read_text())["issue_number"] == 1
 
     main(["--config", str(config), "mark-posted", str(json_path)])
-    assert "next issue will be #2" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "next issue will be #2" in out
+    assert "Website rebuilt: 3 pages" in out  # index, issue-1, archive
+    assert (tmp_path / "site" / "index.html").exists()
+
+
+def test_site_has_front_page_archive_and_links(tmp_path, week):
+    s1, s2 = stats.compute(week, issue_number=1), stats.compute(week, issue_number=2)
+    posted = []
+    for n, s in ((1, s1), (2, s2)):
+        issue = verify.verify(make_issue(lead_headline=f"HEADLINE {n} [[q1]]"), week, s)
+        paths = render.save(issue, week, s, tmp_path / "issues", version=n, png=False)
+        posted.append({"json": str(paths["json"])})
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    (site_dir / "keep-me.txt").write_text("not ours")
+
+    site.build(posted, site_dir)
+
+    index = (site_dir / "index.html").read_text()
+    assert "HEADLINE 2" in index and 'href="issue-1.html"' in index and "Newer issue" not in index
+    assert 'href="issue-2.html"' in (site_dir / "issue-1.html").read_text()
+    archive = (site_dir / "archive.html").read_text()
+    assert archive.index("HEADLINE 2") < archive.index("HEADLINE 1")
+    assert "[[q1]]" not in archive and "<q>The tupperware is BASICALLY returned</q>" in archive
+    assert 'name="robots" content="noindex' in index
+    assert (site_dir / "robots.txt").read_text().startswith("User-agent: *")
+    assert (site_dir / "keep-me.txt").exists()
 
 
 @pytest.mark.skipif(not os.environ.get("GROUPCHAT_RENDER_TEST"), reason="set GROUPCHAT_RENDER_TEST=1 to render a real PNG")

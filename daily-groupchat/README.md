@@ -60,9 +60,53 @@ python -m groupchat mark-posted issues/<date>-v2.json               # after you 
 ```
 
 `mark-posted` keeps the issue numbers going (Vol. 1, No. 2 ...) and lets next week's
-Corrections column call back to the last issue you actually posted.
+Corrections column call back to the last issue you actually posted. It also rebuilds the
+website (below).
 
-`config.toml`, `names.json` and `issues/` hold personal data and are git-ignored.
+`config.toml`, `names.json`, `issues/` and `site/` hold personal data and are git-ignored.
+
+## The website
+
+Every posted issue also goes on a small website you can share as a link:
+
+- `index.html`: the latest issue
+- `issue-1.html`, `issue-2.html`, ...: every past issue, with older/newer links
+- `archive.html`: all headlines, newest first
+
+`mark-posted` rebuilds it automatically. To rebuild it by hand:
+
+```bash
+python -m groupchat site
+```
+
+The pages work on phones, and they tell search engines not to index them (a `noindex` tag
+plus `robots.txt`). That keeps them out of search results, but anyone who has the link can still read them.
+
+### Publishing it (free)
+
+These pages are your friends' real messages. Put the site behind a login that only your
+friends can pass. **Cloudflare Pages with Cloudflare Access** does that for free. Friends type
+their email and get a one-time code, so nobody needs a password or an account.
+
+1. Upload the folder (needs Node.js; pick any project name):
+
+   ```bash
+   npx wrangler pages deploy site --project-name daily-groupchat-yourname
+   ```
+
+   The first run asks you to log in to a free Cloudflare account. It prints the link,
+   e.g. `https://daily-groupchat-yourname.pages.dev`.
+
+2. Lock it to your friends: in the Cloudflare dashboard, go to **Zero Trust → Access →
+   Applications → Add an application → Self-hosted**. Enter the `pages.dev` address and add
+   a policy that allows your friends' email addresses.
+
+3. Each week, after `mark-posted`, run the same `wrangler pages deploy` command again. The link stays
+   the same.
+
+Quicker but less private: drag the `site` folder onto <https://app.netlify.com/drop>.
+You get a random link that anyone who has it can open. Don't use GitHub Pages: it would put
+your friends' messages in a public repo.
 
 ## The three tests from the plan (run these first)
 
